@@ -2,6 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -40,6 +41,7 @@ void deal_parserline()
             }
 
             int _count = 0;
+            string str2 = "";
             for (int i = 0; i < (int)str.size(); ++i)
             {
                 if (str[i] == '\"')
@@ -51,8 +53,13 @@ void deal_parserline()
                 {
                     str[i] = ' ';
                 }
+
+                if (str[i] != '\'' && str[i] != '\"')
+                {
+                    str2 += str[i];
+                }
             }
-            out << str << endl;
+            out << str2 << endl;
         }
         in.close();
         out.close();
@@ -83,6 +90,20 @@ void spit_semicolons()
     ofstream out4(filename.c_str());
     out4 << "Source,Target,Type,Id,Label,Weight" << endl;
     int _Id = 0;
+
+    filename = "data/After4/all_4_to.csv";
+    ofstream out4_to(filename.c_str());
+    out4_to << "Source,Target,Weight" << endl;
+
+    filename = "data/After4/all_4_cc.csv";
+    ofstream out4_cc(filename.c_str());
+    out4_cc << "Source,Target,Weight" << endl;
+
+    filename = "data/After4/all_4_bcc.csv";
+    ofstream out4_bcc(filename.c_str());
+    out4_bcc << "Source,Target,Weight" << endl;
+
+    map<string, int> map4_to, map4_cc, map4_bcc;
 
     for (auto iter : filenames)
     {
@@ -129,6 +150,8 @@ void spit_semicolons()
                     out3 << line[1] << "," << vec3[ix] << ",Directed," << Id << "," << Id << "," << line [10] << endl;
                     _Id++;
                     out4 << line[1] << "," << vec3[ix] << ",Directed," << _Id << "," << _Id << "," << line [10] << endl;
+
+                    map4_to[line[1] + "," + vec3[ix]] ++;
                 }
             }
 
@@ -149,6 +172,8 @@ void spit_semicolons()
                     out3 << line[1] << "," << vec5[ix] << ",Directed," << Id << "," << Id << "," << line [10] << endl;
                     _Id++;
                     out4 << line[1] << "," << vec5[ix] << ",Directed," << _Id << "," << _Id << "," << line [10] << endl;
+
+                    map4_cc[line[1] + "," + vec5[ix]] ++;
                 }
             }
 
@@ -169,6 +194,8 @@ void spit_semicolons()
                     out3 << line[1] << "," << vec7[ix] << ",Directed," << Id << "," << Id << "," << line [10] << endl;
                     _Id++;
                     out4 << line[1] << "," << vec7[ix] << ",Directed," << _Id << "," << _Id << "," << line [10] << endl;
+
+                    map4_bcc[line[1] + "," + vec7[ix]] ++;
                 }
             }
         }
@@ -177,11 +204,32 @@ void spit_semicolons()
         out3.close();
     }
     out4.close();
+
+    for (map<string, int>::iterator iter = map4_to.begin(); iter != map4_to.end(); ++iter)
+    {
+        out4_to << iter->first << "," << iter->second << endl;
+    }
+    out4_to.close();
+
+    for (map<string, int>::iterator iter = map4_cc.begin(); iter != map4_cc.end(); ++iter)
+    {
+        out4_cc << iter->first << "," << iter->second << endl;
+    }
+    out4_cc.close();
+
+    for (map<string, int>::iterator iter = map4_bcc.begin(); iter != map4_bcc.end(); ++iter)
+    {
+        out4_bcc << iter->first << "," << iter->second << endl;
+    }
+    out4_bcc.close();
+
+
 }
+
 
 int main()
 {
-    //deal_parserline();
+    deal_parserline();
 
     spit_semicolons();
 
