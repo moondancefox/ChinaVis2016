@@ -35,6 +35,11 @@ void deal_parserline()
 
         while (getline(in, str))
         {
+            if (str.find("???") != str.npos)
+            {
+                continue;
+            }
+
             while (str.find(_str) != str.npos)
             {
                 str.replace(str.find(_str), _str.size(), "");
@@ -54,7 +59,7 @@ void deal_parserline()
                     str[i] = ' ';
                 }
 
-                if (str[i] != '\'' && str[i] != '\"')
+                if (str[i] != '\'' && str[i] != '\"' && str[i] != '<' && str[i] != '>')
                 {
                     str2 += str[i];
                 }
@@ -93,15 +98,15 @@ void spit_semicolons()
 
     filename = "data/After4/all_4_to.csv";
     ofstream out4_to(filename.c_str());
-    out4_to << "Source,Target,Weight" << endl;
+    out4_to << "Source,Target,Type,Id,Label,Weight" << endl;
 
     filename = "data/After4/all_4_cc.csv";
     ofstream out4_cc(filename.c_str());
-    out4_cc << "Source,Target,Weight" << endl;
+    out4_cc << "Source,Target,Type,Id,Label,Weight" << endl;
 
     filename = "data/After4/all_4_bcc.csv";
     ofstream out4_bcc(filename.c_str());
-    out4_bcc << "Source,Target,Weight" << endl;
+    out4_bcc << "Source,Target,Type,Id,Label,Weight" << endl;
 
     map<string, int> map4_to, map4_cc, map4_bcc;
 
@@ -126,6 +131,11 @@ void spit_semicolons()
         {
             line = spiltSymbol(str, ",");
 
+            if (line[0] == "" || line[1] == "")
+            {
+                continue;
+            }
+
             vec3 = spiltSymbol(line.at(3), ";");
             vec4 = spiltSymbol(line.at(4), ";");
             vec5 = spiltSymbol(line.at(5), ";");
@@ -148,6 +158,7 @@ void spit_semicolons()
 
                     Id++;
                     out3 << line[1] << "," << vec3[ix] << ",Directed," << Id << "," << Id << "," << line [10] << endl;
+
                     _Id++;
                     out4 << line[1] << "," << vec3[ix] << ",Directed," << _Id << "," << _Id << "," << line [10] << endl;
 
@@ -205,25 +216,45 @@ void spit_semicolons()
     }
     out4.close();
 
+
+    int k = 0;
+    _Id = 0;
     for (map<string, int>::iterator iter = map4_to.begin(); iter != map4_to.end(); ++iter)
     {
-        out4_to << iter->first << "," << iter->second << endl;
+       k++;
+       if (k != 1)
+       {
+           ++_Id;
+           out4_to << iter->first << ",Directed," << _Id << ",," << iter->second << endl;
+       }
     }
     out4_to.close();
 
+    k = 0;
+    _Id = 0;
     for (map<string, int>::iterator iter = map4_cc.begin(); iter != map4_cc.end(); ++iter)
     {
-        out4_cc << iter->first << "," << iter->second << endl;
+        k++;
+        if (k != 1)
+        {
+            ++_Id;
+            out4_cc << iter->first << ",Directed," << _Id << ",," << iter->second << endl;
+        }
     }
     out4_cc.close();
 
+    k = 0;
+    _Id = 0;
     for (map<string, int>::iterator iter = map4_bcc.begin(); iter != map4_bcc.end(); ++iter)
     {
-        out4_bcc << iter->first << "," << iter->second << endl;
+        k++;
+        if (k != 1)
+        {
+            ++_Id;
+            out4_bcc << iter->first << ",Directed," << _Id << ",," << iter->second << endl;
+        }
     }
     out4_bcc.close();
-
-
 }
 
 
