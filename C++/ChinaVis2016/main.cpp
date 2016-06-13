@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 #include <map>
+#include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -257,12 +259,198 @@ void spit_semicolons()
     out4_bcc.close();
 }
 
+typedef pair<string, int> PAIR;
+
+struct cmp  //自定义比较规则
+{
+    bool operator() (const PAIR& P1, const PAIR& P2)  //注意是PAIR类型，需要.firt和.second。这个和map类似
+    {
+        return P1.second > P2.second;
+    }
+};
+
+void HourSpilt()
+{
+    // Formate :
+    // Subject,From (display),From (address),To (display),To (address),Cc (display),Cc (address),Bcc (display),Bcc (address),Creator Name,Importance,Date Sent,Date Received,Size,Attachment Names
+    // 00:00-01:00/username/mailcount
+    // 2015/6/6 0:47
+
+    vector<string> filenames = getfilenames(), line, sentdata, get_sentHour;
+    string hours[25] = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
+                        "13", "14", "15", "16", "17", "18", "19", "10", "21", "22", "23", "24"};
+    string filename, str, _str;
+    stringstream stream;
+    map<string, int> mapHour, topNsender, topNreceiver;
+    map<int, int> _mapJsonValue;
+    map<string, map<int, int>> mapJson, _mapJson_out;
+    for (auto iter : filenames)
+    {
+        cout << iter << endl;
+        filename = "data/After2/" + iter + "_2.csv";
+        ifstream in(filename.c_str());
+
+        getline(in, str);
+        while (getline(in, str))
+        {
+            line = spiltSymbol(str, ",");
+            if (line[11].size() != 0)
+            {
+                sentdata = spiltSymbol(line[11], " ");
+                if (sentdata.size() == 2)
+                {
+                    get_sentHour = spiltSymbol(sentdata[1], ":");
+                    int _tmp = 0;
+                    stream << get_sentHour[0];
+                    stream >> _tmp;
+                    stream.clear();
+                    _str = hours[_tmp] + ":00-" + hours[_tmp] + ":59" + "/" + line[1];
+                    mapHour[_str]++;
+
+                    _mapJsonValue = mapJson[line[1]];
+                    _mapJsonValue[_tmp]++;
+                    mapJson[line[1]] = _mapJsonValue;
+
+                    topNsender[line[1]]++;
+
+                    if (line[3] != "")
+                    {
+                        topNreceiver[line[3]]++;
+                    }
+                    else if (line[5] != "")
+                    {
+                        topNreceiver[line[5]]++;
+                    }
+                    else if (line[7] != "")
+                    {
+                        topNreceiver[line[7]]++;
+                    }
+                }
+            }
+
+        }
+        in.close();
+    }
+
+    ofstream out5("data/after5/hour_information.txt");
+    cout << "hour_information" << endl;
+    for (map<string, int>::iterator iter = mapHour.begin(); iter != mapHour.end(); ++iter)
+    {
+        out5 << iter->first << "/" << iter->second << endl;
+    }
+    out5.close();
+
+
+    ofstream out5_json("data/after5/hour_information_json.txt");
+    cout << "hour_information_json" << endl;
+    ifstream in5_json("data/internal_staff.txt");
+    string _str2;
+    map<int, int> _mapJsonValue2;
+
+    while (getline(in5_json, str))
+    {
+        line = spiltSymbol(str, ",");
+        _str = (line.size() == 2 ? line[1] : line[0]);
+        for (map<string, map<int, int>>::iterator iter = mapJson.begin(); iter != mapJson.end(); ++iter)
+        {
+            _str2 = iter->first;
+            _mapJsonValue = iter->second;
+            if (_str2.find(_str) != _str2.npos)
+            {
+                _mapJsonValue2 = _mapJson_out[_str];
+                for (map<int, int>::iterator _iter = _mapJsonValue.begin(); _iter != _mapJsonValue.end(); ++_iter)
+                {
+                    _mapJsonValue2[_iter->first] += _iter->second;
+                }
+                _mapJson_out[_str] = _mapJsonValue2;
+            }
+        }
+    }
+
+    out5_json << "[" << endl;
+    for (map<string, map<int, int>>::iterator iter = _mapJson_out.begin(); iter != _mapJson_out.end(); ++iter)
+    {
+        int _count = 0;
+        out5_json << "  {" << endl;
+        out5_json << "    \"send_count\":" << endl;
+        out5_json << "    [" << endl;
+        _mapJsonValue = iter->second;
+        for (map<int, int>::iterator _iter = _mapJsonValue.begin(); _iter != _mapJsonValue.end(); ++_iter)
+        {
+            out5_json << "      [" << endl;
+            out5_json << "        " << _iter->first << ",\n        " << _iter->second << endl;
+            out5_json << "      ]" << (_iter == --_mapJsonValue.end() ? "" : ",") << endl;
+            _count += _iter->second;
+
+        }
+        out5_json << "    ]," << endl;
+        out5_json << "    \"total\": " << _count << "," << endl;
+        out5_json << "    \"name\": \"" << iter->first << "\"" << endl;
+        out5_json << "  }" << (iter == --_mapJson_out.end() ? "" : ",") << endl;
+    }
+
+    out5_json << "]" << endl;
+
+    in5_json.close();
+    out5_json.close();
+
+
+
+
+    vector<PAIR>scoreVector;
+    ofstream out5_sender("data/after5/topNsender.txt");
+    cout << "topNsender" << endl;
+    vector<PAIR> topNsender_v;
+    for(map<string, int>::iterator iter = topNsender.begin(); iter != topNsender.end(); iter++)  //这边本来是使用vector直接初始化的，当时由于vc 6.0 编译器问题，只能这样写，而且还有非法内存。。
+    {
+        topNsender_v.push_back(*iter);
+    }
+    stable_sort (topNsender_v.begin(), topNsender_v.end(), cmp());  //需要指定cmp
+    for(int i = 0; i != topNsender_v.size(); i++)  //也要按照vector的形式输出
+    {
+        out5_sender << topNsender_v[i].first << "," << topNsender_v[i].second << endl;
+    }
+    out5_sender.close();
+
+
+    ofstream out5_receiver("data/after5/topNreceiver.txt");
+    cout << "topNreceiver" << endl;
+    vector<PAIR> topNreceiver_v;
+    for(map<string, int>::iterator iter = topNreceiver.begin(); iter != topNreceiver.end(); iter++)  //这边本来是使用vector直接初始化的，当时由于vc 6.0 编译器问题，只能这样写，而且还有非法内存。。
+    {
+        topNreceiver_v.push_back(*iter);
+    }
+    stable_sort (topNreceiver_v.begin(), topNreceiver_v.end(), cmp());  //需要指定cmp
+    for(int i = 0; i != topNreceiver_v.size(); i++)  //也要按照vector的形式输出
+    {
+        out5_receiver << topNreceiver_v[i].first << "," << topNreceiver_v[i].second << endl;
+    }
+    out5_receiver.close();
+
+
+    ofstream out5_send_receive_61("data/after5/out5_send_receive_61.txt");
+    cout << "out5_send_receive" << endl;
+    ifstream in5_send_receive_61("data/internal_staff.txt");
+    while (getline(in5_send_receive_61, str))
+    {
+        line = spiltSymbol(str, ",");
+        _str = (line.size() == 2 ? line[1] : line[0]);
+        out5_send_receive_61 << _str << "\t" << topNsender[_str] << "\t" << topNreceiver[_str] << endl;
+    }
+    in5_send_receive_61.close();
+    out5_send_receive_61.close();
+
+}
+
+
 
 int main()
 {
-    deal_parserline();
+    //deal_parserline();
 
-    spit_semicolons();
+    //spit_semicolons();
+
+    HourSpilt();
 
     return 0;
 }
